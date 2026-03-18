@@ -166,7 +166,7 @@ public class TextGraph {
                 }
                 newPr.put(u, prU);
             }
-            pr = newPr;
+            pr = newPr;//djlsfj
         }
         return pr.get(word);
     }
