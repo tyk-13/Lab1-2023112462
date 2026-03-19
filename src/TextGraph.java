@@ -38,6 +38,7 @@ public class TextGraph {
     // 2. 展示有向图
     public void showDirectedGraph() {
         System.out.println("\n========== 1.1 展示有向图 ==========");
+        System.out.println("====== 这是 B1 分支的专属修改 ======");
         for (Map.Entry<String, Map<String, Integer>> entry : graph.entrySet()) {
             System.out.println(entry.getKey() + " -> " + entry.getValue());
         }
