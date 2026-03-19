@@ -3,7 +3,7 @@ import java.nio.file.*;
 import java.util.*;
 
 public class TextGraph {
-    // 存储有向图：Map<起始节点, Map<目标节点, 权重>>
+    // 核心数据结构：外层Map存起点，内层Map存终点和权重(频次)
     private Map<String, Map<String, Integer>> graph = new HashMap<>();
     private List<String> wordsList = new ArrayList<>();
 
@@ -11,7 +11,7 @@ public class TextGraph {
     public void buildGraph(String filePath) {
         try {
             String content = new String(Files.readAllBytes(Paths.get(filePath)));
-            // 将非字母字符替换为空格，转为小写，并按多个空格分割
+            // 清洗文本：非字母全换成空格，转小写，并按空格拆分
             content = content.replaceAll("[^a-zA-Z]", " ").toLowerCase();
             String[] words = content.split("\\s+");
             
@@ -19,27 +19,28 @@ public class TextGraph {
                 if (!w.isEmpty()) wordsList.add(w);
             }
 
+            // 构建相邻单词的有向边
             for (int i = 0; i < wordsList.size() - 1; i++) {
                 String w1 = wordsList.get(i);
                 String w2 = wordsList.get(i + 1);
                 graph.putIfAbsent(w1, new HashMap<>());
-                graph.putIfAbsent(w2, new HashMap<>()); // 保证无出度的节点也在图中
+                graph.putIfAbsent(w2, new HashMap<>()); // 确保只进不出的词也在图里
+                
                 Map<String, Integer> edges = graph.get(w1);
                 edges.put(w2, edges.getOrDefault(w2, 0) + 1);
             }
-            System.out.println("Graph built successfully from " + filePath);
+            System.out.println("[系统提示] 图已成功从 " + filePath + " 构建！");
         } catch (IOException e) {
-            System.out.println("Error reading file: " + e.getMessage());
+            System.out.println("读取文件出错，请检查文件是否存在: " + e.getMessage());
         }
     }
 
     // 2. 展示有向图
     public void showDirectedGraph() {
-        System.out.println("\n--- Directed Graph Adjacency List ---");
-        for (String node : graph.keySet()) {
-            System.out.println(node + " -> " + graph.get(node));
+        System.out.println("\n========== 1.1 展示有向图 ==========");
+        for (Map.Entry<String, Map<String, Integer>> entry : graph.entrySet()) {
+            System.out.println(entry.getKey() + " -> " + entry.getValue());
         }
-        System.out.println("-------------------------------------\n");
     }
 
     // 3. 查询桥接词
@@ -62,9 +63,11 @@ public class TextGraph {
         return "The bridge words from " + word1 + " to " + word2 + " are: " + String.join(", ", bridgeWords);
     }
 
-    // 4. 根据bridge word生成新文本
+    // 4. 根据桥接词生成新文本
     public String generateNewText(String inputText) {
         String[] words = inputText.replaceAll("[^a-zA-Z]", " ").toLowerCase().split("\\s+");
+        if (words.length == 0 || words[0].isEmpty()) return "";
+        
         StringBuilder newText = new StringBuilder();
         Random rand = new Random();
 
@@ -78,7 +81,6 @@ public class TextGraph {
                     }
                 }
                 if (!bridges.isEmpty()) {
-                    // 随机选择一个桥接词插入
                     newText.append(bridges.get(rand.nextInt(bridges.size()))).append(" ");
                 }
             }
@@ -98,22 +100,18 @@ public class TextGraph {
         Map<String, String> prev = new HashMap<>();
         PriorityQueue<String> pq = new PriorityQueue<>(Comparator.comparingInt(dist::get));
 
-        for (String node : graph.keySet()) {
-            dist.put(node, Integer.MAX_VALUE);
-        }
+        for (String node : graph.keySet()) dist.put(node, Integer.MAX_VALUE);
         dist.put(word1, 0);
         pq.add(word1);
 
         while (!pq.isEmpty()) {
             String u = pq.poll();
-            if (word2 != null && u.equals(word2)) break; // 找到了目标节点
-
+            if (word2 != null && u.equals(word2)) break;
             if (dist.get(u) == Integer.MAX_VALUE) break;
 
             for (Map.Entry<String, Integer> neighbor : graph.get(u).entrySet()) {
                 String v = neighbor.getKey();
-                int weight = neighbor.getValue(); // 这里权重代表频次，为了符合最短路径，可以将距离视为权重的倒数或者直接用权重。
-                // 实验通常将权重视为距离，频次越高距离越远(或越近，根据你的设计，这里直接将权重累加作为距离)
+                int weight = neighbor.getValue(); 
                 int alt = dist.get(u) + weight; 
                 if (alt < dist.get(v)) {
                     dist.put(v, alt);
@@ -123,7 +121,6 @@ public class TextGraph {
             }
         }
 
-        // 构造路径字符串
         if (word2 != null && !word2.isEmpty()) {
             if (dist.get(word2) == Integer.MAX_VALUE) return "No path from " + word1 + " to " + word2;
             List<String> path = new ArrayList<>();
@@ -131,7 +128,6 @@ public class TextGraph {
             Collections.reverse(path);
             return "Shortest path: " + String.join(" -> ", path) + " (Length: " + dist.get(word2) + ")";
         } else {
-            // 如果word2为空，输出word1到所有其他节点的最短路径
             StringBuilder sb = new StringBuilder("Shortest paths from " + word1 + ":\n");
             for (String node : graph.keySet()) {
                 if (!node.equals(word1) && dist.get(node) != Integer.MAX_VALUE) {
@@ -150,7 +146,7 @@ public class TextGraph {
         Map<String, Double> pr = new HashMap<>();
         for (String node : graph.keySet()) pr.put(node, 1.0 / N);
 
-        for (int iter = 0; iter < 20; iter++) { // 迭代20次
+        for (int iter = 0; iter < 20; iter++) {
             Map<String, Double> newPr = new HashMap<>();
             double sinkPR = 0;
             for (String node : graph.keySet()) {
@@ -166,7 +162,7 @@ public class TextGraph {
                 }
                 newPr.put(u, prU);
             }
-            pr = newPr;//djlsfj
+            pr = newPr;
         }
         return pr.get(word);
     }
@@ -187,34 +183,56 @@ public class TextGraph {
             String edge = current + "->" + next;
             
             walkResult.append(" ").append(next);
-            if (visitedEdges.contains(edge)) break; // 出现第一条重复的边即停止
+            if (visitedEdges.contains(edge)) break; // 遇到重复边停止
             visitedEdges.add(edge);
             current = next;
         }
 
         try (FileWriter writer = new FileWriter("random_walk_output.txt")) {
             writer.write(walkResult.toString());
-            System.out.println("Random walk saved to random_walk_output.txt");
         } catch (IOException e) {
-            e.printStackTrace();
+            System.out.println("写入文件出错: " + e.getMessage());
         }
         return walkResult.toString();
     }
 
-    // 主函数：用于测试
+    // 测试主函数 (直接为你实验报告的表格生成答案)
     public static void main(String[] args) {
         TextGraph tg = new TextGraph();
         
-        // 1. 测试基础文本读取
-        System.out.println("--- Testing with Easy Test.txt ---");
+        // 1.1 读取并展示图
         tg.buildGraph("Easy Test.txt");
         tg.showDirectedGraph();
 
-        // 2. 测试各项功能
-        System.out.println("Bridge words (scientist, data): " + tg.queryBridgeWords("scientist", "data"));
-        System.out.println("Generated Text: " + tg.generateNewText("scientist data"));
-        System.out.println(tg.calcShortestPath("scientist", "report"));
-        System.out.println("PageRank of 'scientist': " + tg.calPageRank("scientist"));
-        System.out.println("Random Walk: " + tg.randomWalk());
+        // 1.2 查询桥接词测试
+        System.out.println("\n========== 1.2 查询桥接词 ==========");
+        System.out.println("1. the, analyzed -> " + tg.queryBridgeWords("the", "analyzed"));
+        System.out.println("2. data, team -> " + tg.queryBridgeWords("data", "team"));
+        System.out.println("3. apple, data -> " + tg.queryBridgeWords("apple", "data"));
+
+        // 1.3 生成新文本测试
+        System.out.println("\n========== 1.3 生成新文本 ==========");
+        System.out.println("1. 输入'the analyzed' -> " + tg.generateNewText("the analyzed"));
+        System.out.println("2. 输入'data team' -> " + tg.generateNewText("data team"));
+        System.out.println("3. 输入'the apple analyzed' -> " + tg.generateNewText("the apple analyzed"));
+
+        // 1.4 计算最短路径测试
+        System.out.println("\n========== 1.4 计算最短路径 ==========");
+        System.out.println("1. scientist -> report:\n   " + tg.calcShortestPath("scientist", "report"));
+        System.out.println("2. team -> carefully:\n   " + tg.calcShortestPath("team", "carefully"));
+        System.out.println("3. wrote -> (空):\n" + tg.calcShortestPath("wrote", ""));
+
+        // 1.5 PageRank测试
+        System.out.println("\n========== 1.5 计算 PageRank ==========");
+        System.out.println("1. the: " + tg.calPageRank("the"));
+        System.out.println("2. scientist: " + tg.calPageRank("scientist"));
+        System.out.println("3. again: " + tg.calPageRank("again"));
+
+        // 1.6 随机游走测试
+        System.out.println("\n========== 1.6 随机游走 ==========");
+        System.out.println("第 1 次游走: " + tg.randomWalk());
+        System.out.println("第 2 次游走: " + tg.randomWalk());
+        System.out.println("第 3 次游走: " + tg.randomWalk());
+        System.out.println("(游走结果已同时保存至项目根目录的 random_walk_output.txt)");
     }
 }
