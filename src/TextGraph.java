@@ -37,8 +37,11 @@ public class TextGraph {
 
     // 2. 展示有向图
     public void showDirectedGraph() {
-        System.out.println("\n========== 1.1 展示有向图 ==========");
-        System.out.println("====== 这是 B1 分支的专属修改 ======");
+        System.out.println("\n========== 当前有向图 ==========");
+        if (graph.isEmpty()) {
+            System.out.println("图为空，请先读取有效文件。");
+            return;
+        }
         for (Map.Entry<String, Map<String, Integer>> entry : graph.entrySet()) {
             System.out.println(entry.getKey() + " -> " + entry.getValue());
         }
@@ -170,7 +173,7 @@ public class TextGraph {
 
     // 7. 随机游走
     public String randomWalk() {
-        if (graph.isEmpty()) return "";
+        if (graph.isEmpty()) return "Graph is empty!";
         List<String> nodes = new ArrayList<>(graph.keySet());
         String current = nodes.get(new Random().nextInt(nodes.size()));
         
@@ -191,49 +194,85 @@ public class TextGraph {
 
         try (FileWriter writer = new FileWriter("random_walk_output.txt")) {
             writer.write(walkResult.toString());
+            System.out.println("[系统提示] 游走结果已保存到 random_walk_output.txt");
         } catch (IOException e) {
             System.out.println("写入文件出错: " + e.getMessage());
         }
         return walkResult.toString();
     }
 
-    // 测试主函数 (直接为你实验报告的表格生成答案)
+    // 交互式主函数
     public static void main(String[] args) {
         TextGraph tg = new TextGraph();
+        Scanner scanner = new Scanner(System.in);
+
+        System.out.println("欢迎使用文本有向图系统！");
+        System.out.print("请输入要读取的文本文件路径 (直接回车默认读取 'Easy Test.txt'): ");
+        String filePath = scanner.nextLine().trim();
         
-        // 1.1 读取并展示图
-        tg.buildGraph("Easy Test.txt");
+        if (filePath.isEmpty()) {
+            filePath = "Easy Test.txt";
+        }
+        
+        // 构建图并展示
+        tg.buildGraph(filePath);
         tg.showDirectedGraph();
 
-        // 1.2 查询桥接词测试
-        System.out.println("\n========== 1.2 查询桥接词 ==========");
-        System.out.println("1. the, analyzed -> " + tg.queryBridgeWords("the", "analyzed"));
-        System.out.println("2. data, team -> " + tg.queryBridgeWords("data", "team"));
-        System.out.println("3. apple, data -> " + tg.queryBridgeWords("apple", "data"));
+        // 进入交互菜单
+        while (true) {
+            System.out.println("\n================ 请选择功能 ================");
+            System.out.println("1. 查询桥接词 (Query Bridge Words)");
+            System.out.println("2. 根据桥接词生成新文本 (Generate New Text)");
+            System.out.println("3. 计算两个单词间的最短路径 (Shortest Path)");
+            System.out.println("4. 计算一个单词到其余各节点的最短路径");
+            System.out.println("5. 计算单个单词的 PageRank 值");
+            System.out.println("6. 随机游走 (Random Walk)");
+            System.out.println("0. 退出程序");
+            System.out.println("============================================");
+            System.out.print("请输入数字选择: ");
 
-        // 1.3 生成新文本测试
-        System.out.println("\n========== 1.3 生成新文本 ==========");
-        System.out.println("1. 输入'the analyzed' -> " + tg.generateNewText("the analyzed"));
-        System.out.println("2. 输入'data team' -> " + tg.generateNewText("data team"));
-        System.out.println("3. 输入'the apple analyzed' -> " + tg.generateNewText("the apple analyzed"));
+            String choice = scanner.nextLine().trim();
 
-        // 1.4 计算最短路径测试
-        System.out.println("\n========== 1.4 计算最短路径 ==========");
-        System.out.println("1. scientist -> report:\n   " + tg.calcShortestPath("scientist", "report"));
-        System.out.println("2. team -> carefully:\n   " + tg.calcShortestPath("team", "carefully"));
-        System.out.println("3. wrote -> (空):\n" + tg.calcShortestPath("wrote", ""));
-
-        // 1.5 PageRank测试
-        System.out.println("\n========== 1.5 计算 PageRank ==========");
-        System.out.println("1. the: " + tg.calPageRank("the"));
-        System.out.println("2. scientist: " + tg.calPageRank("scientist"));
-        System.out.println("3. again: " + tg.calPageRank("again"));
-
-        // 1.6 随机游走测试
-        System.out.println("\n========== 1.6 随机游走 ==========");
-        System.out.println("第 1 次游走: " + tg.randomWalk());
-        System.out.println("第 2 次游走: " + tg.randomWalk());
-        System.out.println("第 3 次游走: " + tg.randomWalk());
-        System.out.println("(游走结果已同时保存至项目根目录的 random_walk_output.txt)");
+            switch (choice) {
+                case "1":
+                    System.out.print("请输入第一个单词: ");
+                    String w1 = scanner.nextLine().trim().toLowerCase();
+                    System.out.print("请输入第二个单词: ");
+                    String w2 = scanner.nextLine().trim().toLowerCase();
+                    System.out.println("-> " + tg.queryBridgeWords(w1, w2));
+                    break;
+                case "2":
+                    System.out.print("请输入一行文本: ");
+                    String text = scanner.nextLine().trim();
+                    System.out.println("-> " + tg.generateNewText(text));
+                    break;
+                case "3":
+                    System.out.print("请输入起点单词: ");
+                    String sw1 = scanner.nextLine().trim().toLowerCase();
+                    System.out.print("请输入终点单词: ");
+                    String sw2 = scanner.nextLine().trim().toLowerCase();
+                    System.out.println("-> " + tg.calcShortestPath(sw1, sw2));
+                    break;
+                case "4":
+                    System.out.print("请输入起点单词: ");
+                    String sw3 = scanner.nextLine().trim().toLowerCase();
+                    System.out.println("->\n" + tg.calcShortestPath(sw3, ""));
+                    break;
+                case "5":
+                    System.out.print("请输入单词: ");
+                    String prWord = scanner.nextLine().trim().toLowerCase();
+                    System.out.println("-> " + prWord + " 的 PageRank 值为: " + tg.calPageRank(prWord));
+                    break;
+                case "6":
+                    System.out.println("-> 游走路径: " + tg.randomWalk());
+                    break;
+                case "0":
+                    System.out.println("感谢使用，再见！");
+                    scanner.close();
+                    return; // 结束 main 方法，退出程序
+                default:
+                    System.out.println("-> 输入无效，请输入 0-6 之间的数字。");
+            }
+        }
     }
 }
