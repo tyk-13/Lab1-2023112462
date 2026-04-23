@@ -12,7 +12,8 @@ public class TextGraphTestLauncher {
     public static void main(String[] args) {
         LauncherDiscoveryRequest request = LauncherDiscoveryRequestBuilder.request()
                 .selectors(
-                        DiscoverySelectors.selectClass(TextGraphBlackBoxTest.class))
+                        DiscoverySelectors.selectClass(TextGraphBlackBoxTest.class),
+                        DiscoverySelectors.selectClass(TextGraphWhiteBoxTest.class))
                 .build();
 
         Launcher launcher = LauncherFactory.create();
