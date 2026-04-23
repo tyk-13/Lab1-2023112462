@@ -1,22 +1,38 @@
-import java.io.*;
-import java.nio.file.*;
-import java.util.*;
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Paths;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.PriorityQueue;
+import java.util.Random;
+import java.util.Scanner;
+import java.util.Set;
 
 public class TextGraph {
     // 核心数据结构：外层Map存起点，内层Map存终点和权重(频次)
-    private Map<String, Map<String, Integer>> graph = new HashMap<>();
-    private List<String> wordsList = new ArrayList<>();
+    private final Map<String, Map<String, Integer>> graph = new HashMap<>();
+    private final List<String> wordsList = new ArrayList<>();
 
     // 1. 读取文本并生成图
     public void buildGraph(String filePath) {
         try {
-            String content = new String(Files.readAllBytes(Paths.get(filePath)));
+            graph.clear();
+            wordsList.clear();
+            String content = Files.readString(Paths.get(filePath), StandardCharsets.UTF_8);
             // 清洗文本：非字母全换成空格，转小写，并按空格拆分
             content = content.replaceAll("[^a-zA-Z]", " ").toLowerCase();
             String[] words = content.split("\\s+");
             
             for (String w : words) {
-                if (!w.isEmpty()) wordsList.add(w);
+                if (!w.isEmpty()) {
+                    wordsList.add(w);
+                }
             }
 
             // 构建相邻单词的有向边
@@ -60,6 +76,7 @@ public class TextGraph {
                 bridgeWords.add(w3);
             }
         }
+        Collections.sort(bridgeWords);
         
         if (bridgeWords.isEmpty()) {
             return "No bridge words from " + word1 + " to " + word2 + "!";
@@ -70,17 +87,19 @@ public class TextGraph {
     // 4. 根据桥接词生成新文本
     public String generateNewText(String inputText) {
         String[] words = inputText.replaceAll("[^a-zA-Z]", " ").toLowerCase().split("\\s+");
-        if (words.length == 0 || words[0].isEmpty()) return "";
+        if (words.length == 0 || words[0].isEmpty()) {
+            return "";
+        }
         
         StringBuilder newText = new StringBuilder();
         Random rand = new Random();
 
         for (int i = 0; i < words.length - 1; i++) {
             newText.append(words[i]).append(" ");
-            if (graph.containsKey(words[i]) && graph.containsKey(words[i+1])) {
+            if (graph.containsKey(words[i]) && graph.containsKey(words[i + 1])) {
                 List<String> bridges = new ArrayList<>();
                 for (String w3 : graph.get(words[i]).keySet()) {
-                    if (graph.containsKey(w3) && graph.get(w3).containsKey(words[i+1])) {
+                    if (graph.containsKey(w3) && graph.get(w3).containsKey(words[i + 1])) {
                         bridges.add(w3);
                     }
                 }
@@ -95,7 +114,9 @@ public class TextGraph {
 
     // 5. 计算最短路径 (Dijkstra)
     public String calcShortestPath(String word1, String word2) {
-        if (!graph.containsKey(word1)) return "Word '" + word1 + "' not in graph.";
+        if (!graph.containsKey(word1)) {
+            return "Word '" + word1 + "' not in graph.";
+        }
         if (word2 != null && !word2.isEmpty() && !graph.containsKey(word2)) {
             return "Word '" + word2 + "' not in graph.";
         }
@@ -104,14 +125,20 @@ public class TextGraph {
         Map<String, String> prev = new HashMap<>();
         PriorityQueue<String> pq = new PriorityQueue<>(Comparator.comparingInt(dist::get));
 
-        for (String node : graph.keySet()) dist.put(node, Integer.MAX_VALUE);
+        for (String node : graph.keySet()) {
+            dist.put(node, Integer.MAX_VALUE);
+        }
         dist.put(word1, 0);
         pq.add(word1);
 
         while (!pq.isEmpty()) {
             String u = pq.poll();
-            if (word2 != null && u.equals(word2)) break;
-            if (dist.get(u) == Integer.MAX_VALUE) break;
+            if (word2 != null && u.equals(word2)) {
+                break;
+            }
+            if (dist.get(u) == Integer.MAX_VALUE) {
+                break;
+            }
 
             for (Map.Entry<String, Integer> neighbor : graph.get(u).entrySet()) {
                 String v = neighbor.getKey();
@@ -126,9 +153,13 @@ public class TextGraph {
         }
 
         if (word2 != null && !word2.isEmpty()) {
-            if (dist.get(word2) == Integer.MAX_VALUE) return "No path from " + word1 + " to " + word2;
+            if (dist.get(word2) == Integer.MAX_VALUE) {
+                return "No path from " + word1 + " to " + word2;
+            }
             List<String> path = new ArrayList<>();
-            for (String at = word2; at != null; at = prev.get(at)) path.add(at);
+            for (String at = word2; at != null; at = prev.get(at)) {
+                path.add(at);
+            }
             Collections.reverse(path);
             return "Shortest path: " + String.join(" -> ", path) + " (Length: " + dist.get(word2) + ")";
         } else {
@@ -148,13 +179,17 @@ public class TextGraph {
         int N = graph.size();
         double d = 0.85;
         Map<String, Double> pr = new HashMap<>();
-        for (String node : graph.keySet()) pr.put(node, 1.0 / N);
+        for (String node : graph.keySet()) {
+            pr.put(node, 1.0 / N);
+        }
 
         for (int iter = 0; iter < 20; iter++) {
             Map<String, Double> newPr = new HashMap<>();
             double sinkPR = 0;
             for (String node : graph.keySet()) {
-                if (graph.get(node).isEmpty()) sinkPR += pr.get(node);
+                if (graph.get(node).isEmpty()) {
+                    sinkPR += pr.get(node);
+                }
             }
 
             for (String u : graph.keySet()) {
@@ -173,7 +208,9 @@ public class TextGraph {
 
     // 7. 随机游走
     public String randomWalk() {
-        if (graph.isEmpty()) return "Graph is empty!";
+        if (graph.isEmpty()) {
+            return "Graph is empty!";
+        }
         List<String> nodes = new ArrayList<>(graph.keySet());
         String current = nodes.get(new Random().nextInt(nodes.size()));
         
@@ -187,13 +224,15 @@ public class TextGraph {
             String edge = current + "->" + next;
             
             walkResult.append(" ").append(next);
-            if (visitedEdges.contains(edge)) break; // 遇到重复边停止
+            if (visitedEdges.contains(edge)) {
+                break; // 遇到重复边停止
+            }
             visitedEdges.add(edge);
             current = next;
         }
 
-        try (FileWriter writer = new FileWriter("random_walk_output.txt")) {
-            writer.write(walkResult.toString());
+        try {
+            Files.writeString(Paths.get("random_walk_output.txt"), walkResult.toString(), StandardCharsets.UTF_8);
             System.out.println("[系统提示] 游走结果已保存到 random_walk_output.txt");
         } catch (IOException e) {
             System.out.println("写入文件出错: " + e.getMessage());
